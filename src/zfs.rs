@@ -85,6 +85,7 @@ impl From<PathBuf> for Snapshot {
         Self { path }
     }
 }
+
 /// check if a path is a zfs mountpoint using findmnt
 fn is_zfs_dataset(path: &Path) -> Result<bool> {
     match Command::new("findmnt")

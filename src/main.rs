@@ -22,12 +22,11 @@ fn main() -> Result<()> {
     }
 
     let mountpoint = zfs::Mountpoint::find(&to_recover_absolute)?;
-
-    let snapshots = mountpoint.get_snapshots()?;
     let to_recover_relative_to_mountpoint = mountpoint.get_relative_path(&to_recover_absolute);
 
     // reverse order means newest to oldest
-    let full_path_in_snapshot = snapshots
+    let full_path_in_snapshot = mountpoint
+        .get_snapshots()?
         .iter()
         .rev()
         .find_map(|snap| snap.contains_file(&to_recover_relative_to_mountpoint))
