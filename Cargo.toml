@@ -11,3 +11,6 @@ license = "GPLv3"
 
 [dependencies]
 path-absolutize = "3.0.14"
+
+[[bin]]
+name = "zfs-undelete"
