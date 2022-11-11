@@ -25,7 +25,7 @@ fn main() -> Result<()> {
 
     let mut full_path_in_snapshot = None;
     // reverse alphabetical order means newest to oldest
-    for snap in snapshots {
+    for snap in snapshots.iter().rev() {
         if let Some(path) = snap.contains_file(&relative_filename) {
             full_path_in_snapshot = Some(path);
             break;

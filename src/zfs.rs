@@ -50,6 +50,7 @@ impl Mountpoint {
         self.path.to_owned()
     }
 
+    /// get snapshots in alphabetically ascending order
     pub(crate) fn get_snapshots(&self) -> Result<Vec<Snapshot>> {
         let mut path: PathBuf = self.get_pathbuf();
         let subdir = PathBuf::from(".zfs/snapshot");
