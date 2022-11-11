@@ -5,25 +5,23 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 
 pub(crate) fn restore_file_from_snapshot(source: &Path, target: &Path) -> Result<()> {
-    let mut command = Command::new("cp");
-    command.args([
-        "-a",
-        source
-            .to_str()
-            .with_context(|| format!("could not convert path to string: {source:?}"))?,
-        target
-            .to_str()
-            .with_context(|| format!("could not convert path to string: {target:?}"))?,
-    ]);
-    dbg!(&command);
-    if !command
+    let source_str = path_to_str(source)?;
+    let target_str = path_to_str(target)?;
+
+    match Command::new("cp")
+        .args(["-a", source_str, target_str])
         .status()
         .with_context(|| "error running `cp`")?
         .success()
     {
-        bail!("error while during execution of `cp`")
+        true => Ok(()),
+        false => bail!("error during execution of `cp`"),
     }
-    Ok(())
+}
+
+fn path_to_str(path: &Path) -> Result<&str> {
+    path.to_str()
+        .with_context(|| format!("could not convert path to str: {path:?}"))
 }
 
 pub(crate) fn ask_user_confirmation() -> Result<bool> {
