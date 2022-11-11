@@ -1,4 +1,5 @@
 mod undelete;
+mod zfs;
 
 use std::env::args;
 use std::path::PathBuf;
@@ -17,24 +18,27 @@ fn main() -> Result<()> {
         bail!("currently refusing to work on existing files. delete an existing file if you want to restore it from a snapshot");
     }
 
-    let mountpoint = dbg!(undelete::find_mountpoint(&filename)?);
+    let mountpoint = zfs::Mountpoint::find(&filename)?;
 
-    let mut snapshots = undelete::get_snapshots(&mountpoint)?;
-    let relative_filename = undelete::get_path_relative_to_mountpoint(dbg!(&filename), &mountpoint);
+    let snapshots = mountpoint.get_snapshots()?;
+    let relative_filename = mountpoint.get_relative_path(&filename);
 
-    let mut best_snapshot = None;
+    let mut full_path_in_snapshot = None;
     // reverse alphabetical order means newest to oldest
-    for snap in snapshots.iter_mut().rev() {
-        if undelete::mountpoint_contains_file(snap, &relative_filename) {
-            best_snapshot = Some(snap);
+    for snap in snapshots {
+        if let Some(path) = snap.contains_file(&relative_filename) {
+            full_path_in_snapshot = Some(path);
             break;
         }
     }
-    let absolute_file_in_snapshot = best_snapshot.with_context(|| "file not found in snapshots")?;
-    absolute_file_in_snapshot.push(dbg!(relative_filename));
-    println!("found file here:\n{absolute_file_in_snapshot:?}");
+    let to_copy = match full_path_in_snapshot {
+        Some(path) => path,
+        _ => bail!("file does not exist in any snapshot"),
+    };
+
+    println!("found file here:\n{to_copy:?}");
     if undelete::ask_user_confirmation()? {
-        undelete::restore_file_from_snapshot(&filename, absolute_file_in_snapshot)?;
+        undelete::restore_file_from_snapshot(&to_copy, &filename)?;
     }
     Ok(())
 }
