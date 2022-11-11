@@ -12,15 +12,21 @@ pub(crate) fn restore_file_from_snapshot(
     let mut command = Command::new("cp");
     command.args([
         "-a",
-        absolute_file_in_snapshot
-            .to_str()
-            .with_context(|| "could not convert path to string")?,
+        absolute_file_in_snapshot.to_str().with_context(|| {
+            format!("could not convert path to string: {absolute_file_in_snapshot:?}")
+        })?,
         relative_filename
             .to_str()
-            .with_context(|| "could not convert path to string")?,
+            .with_context(|| format!("could not convert path to string: {relative_filename:?}"))?,
     ]);
     dbg!(&command);
-    command.output().with_context(|| "error running `cp`")?;
+    if !command
+        .status()
+        .with_context(|| "error running `cp`")?
+        .success()
+    {
+        bail!("error while during execution of `cp`")
+    }
     Ok(())
 }
 
@@ -40,7 +46,7 @@ pub(crate) fn get_path_relative_to_mountpoint(path: &Path, mountpoint: &Path) ->
 pub(crate) fn find_mountpoint(path: &Path) -> Result<PathBuf> {
     let filepath = path
         .absolutize()
-        .with_context(|| "could not resolve filepath")?
+        .with_context(|| format!("could not resolve filepath {path:?}"))?
         .to_path_buf();
     for parent in filepath.ancestors() {
         if is_zfs_dataset(parent)? {
@@ -89,7 +95,7 @@ pub(crate) fn get_snapshots(path: &Path) -> Result<Vec<PathBuf>> {
     let mut errors = vec![];
     let mut result: Vec<_> = path
         .read_dir()
-        .with_context(|| "could not read zfs snapshot dir `{path:?}`")?
+        .with_context(|| format!("could not read zfs snapshot dir `{path:?}`"))?
         .into_iter()
         .filter_map(|r| r.map_err(|e| errors.push(e)).ok())
         .map(|i| i.path())
