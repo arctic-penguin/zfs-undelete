@@ -2,20 +2,26 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use anyhow::{bail, Context, Result};
 use path_absolutize::*;
 
 pub(crate) fn restore_file_from_snapshot(
     relative_filename: &Path,
     absolute_file_in_snapshot: &Path,
-) {
+) -> Result<()> {
     let mut command = Command::new("cp");
     command.args([
         "-a",
-        absolute_file_in_snapshot.to_str().unwrap(),
-        relative_filename.to_str().unwrap(),
+        absolute_file_in_snapshot
+            .to_str()
+            .with_context(|| "could not convert path to string")?,
+        relative_filename
+            .to_str()
+            .with_context(|| "could not convert path to string")?,
     ]);
     dbg!(&command);
-    command.output().unwrap();
+    command.output().with_context(|| "error running `cp`")?;
+    Ok(())
 }
 
 pub(crate) fn mountpoint_contains_file(mountpoint: &Path, filename: &Path) -> bool {
@@ -31,51 +37,68 @@ pub(crate) fn get_path_relative_to_mountpoint(path: &Path, mountpoint: &Path) ->
 }
 
 /// iterate the path from the child to root, return the first zfs mountpoint
-pub(crate) fn find_mountpoint(path: &Path) -> PathBuf {
-    let filepath = path.absolutize().unwrap().to_path_buf();
+pub(crate) fn find_mountpoint(path: &Path) -> Result<PathBuf> {
+    let filepath = path
+        .absolutize()
+        .with_context(|| "could not resolve filepath")?
+        .to_path_buf();
     for parent in filepath.ancestors() {
-        if is_zfs_dataset(parent) {
-            return parent.to_owned();
+        if is_zfs_dataset(parent)? {
+            return Ok(parent.to_owned());
         }
     }
-    panic!()
+    bail!("file does not reside under any ZFS dataset")
 }
 
 /// check if a path is a zfs mountpoint using findmnt
-fn is_zfs_dataset(path: &Path) -> bool {
+fn is_zfs_dataset(path: &Path) -> Result<bool> {
     match Command::new("findmnt")
-        .args(["--noheadings", path.to_str().unwrap()])
+        .args([
+            "--noheadings",
+            path.to_str()
+                .with_context(|| "could not convert path to string")?,
+        ])
         .output()
     {
-        Ok(output) => {
-            String::from_utf8(output.stdout).unwrap().contains("zfs") && output.status.success()
-        }
-        _ => panic!(),
+        Ok(output) => Ok(String::from_utf8(output.stdout)
+            .with_context(|| "zfs dataset name contains invalid UTF8")?
+            .contains("zfs")
+            && output.status.success()),
+        _ => bail!("could not determine if {path:?} is a zfs dataset"),
     }
 }
 
-pub(crate) fn ask_user_confirmation() -> bool {
+pub(crate) fn ask_user_confirmation() -> Result<bool> {
     print!("Restore file? [y/N] ");
-    io::stdout().flush().unwrap();
+    io::stdout()
+        .flush()
+        .with_context(|| "could not flush stdout")?;
     let mut buf = String::new();
-    io::stdin().read_line(&mut buf).unwrap();
+    io::stdin()
+        .read_line(&mut buf)
+        .with_context(|| "could not read line from stdin")?;
     buf = buf.to_lowercase();
-    buf.contains('y')
+    Ok(buf.contains('y'))
 }
 
 /// get all snapshots for a zfs mountpoint
-pub(crate) fn get_snapshots(path: &Path) -> Vec<PathBuf> {
+pub(crate) fn get_snapshots(path: &Path) -> Result<Vec<PathBuf>> {
     let mut path: PathBuf = path.into();
     path.push(".zfs");
     path.push("snapshot");
+    let mut errors = vec![];
     let mut result: Vec<_> = path
         .read_dir()
-        .unwrap()
+        .with_context(|| "could not read zfs snapshot dir `{path:?}`")?
         .into_iter()
-        .map(|i| i.unwrap().path())
+        .filter_map(|r| r.map_err(|e| errors.push(e)).ok())
+        .map(|i| i.path())
         .collect();
     result.sort_unstable();
-    result
+    if !errors.is_empty() {
+        bail!("aggregation of snapshots failed, {:?}", errors);
+    }
+    Ok(result)
 }
 
 #[cfg(test)]
