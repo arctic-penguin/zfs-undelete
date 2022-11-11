@@ -4,7 +4,7 @@ mod zfs;
 use std::env::args;
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use path_absolutize::*;
 
 fn main() -> Result<()> {
@@ -23,22 +23,16 @@ fn main() -> Result<()> {
     let snapshots = mountpoint.get_snapshots()?;
     let relative_filename = mountpoint.get_relative_path(&filename);
 
-    let mut full_path_in_snapshot = None;
-    // reverse alphabetical order means newest to oldest
-    for snap in snapshots.iter().rev() {
-        if let Some(path) = snap.contains_file(&relative_filename) {
-            full_path_in_snapshot = Some(path);
-            break;
-        }
-    }
-    let to_copy = match full_path_in_snapshot {
-        Some(path) => path,
-        _ => bail!("file does not exist in any snapshot"),
-    };
+    // reverse order means newest to oldest
+    let full_path_in_snapshot = snapshots
+        .iter()
+        .rev()
+        .find_map(|snap| snap.contains_file(&relative_filename))
+        .ok_or_else(|| anyhow!("file does not exist in any snapshot"))?;
 
-    println!("found file here:\n{to_copy:?}");
+    println!("found file here:\n{full_path_in_snapshot:?}");
     if undelete::ask_user_confirmation()? {
-        undelete::restore_file_from_snapshot(&to_copy, &filename)?;
+        undelete::restore_file_from_snapshot(&full_path_in_snapshot, &filename)?;
     }
     Ok(())
 }
