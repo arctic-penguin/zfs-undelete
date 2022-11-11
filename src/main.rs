@@ -35,7 +35,7 @@ fn main() {
 fn restore_file_from_snapshot(relative_filename: &Path, absolute_file_in_snapshot: &Path) {
     let mut command = Command::new("cp");
     command.args([
-        "-r",
+        "-a",
         absolute_file_in_snapshot.to_str().unwrap(),
         relative_filename.to_str().unwrap(),
     ]);
