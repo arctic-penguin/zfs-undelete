@@ -1,7 +1,7 @@
 [package]
 authors = [ "Arctic Penguin" ]
 name = "zfs-undelete"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "an easy-to-use CLI tool to recover files from zfs snapshots"
 repository = "https://github.com/arctic-penguin/zfs-undelete"
