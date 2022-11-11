@@ -1,3 +1,4 @@
+use crate::misc::ToStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -89,11 +90,7 @@ impl From<PathBuf> for Snapshot {
 /// check if a path is a zfs mountpoint using findmnt
 fn is_zfs_dataset(path: &Path) -> Result<bool> {
     match Command::new("findmnt")
-        .args([
-            "--noheadings",
-            path.to_str()
-                .with_context(|| "could not convert path to string")?,
-        ])
+        .args(["--noheadings", path.to_str_anyhow()?])
         .output()
     {
         Ok(output) => Ok(String::from_utf8(output.stdout)

@@ -4,9 +4,11 @@ use std::process::Command;
 
 use anyhow::{bail, Context, Result};
 
+use crate::misc::ToStr;
+
 pub(crate) fn restore_file_from_snapshot(source: &Path, target: &Path) -> Result<()> {
-    let source_str = path_to_str(source)?;
-    let target_str = path_to_str(target)?;
+    let source_str = source.to_str_anyhow()?;
+    let target_str = target.to_str_anyhow()?;
 
     match Command::new("cp")
         .args(["-a", source_str, target_str])
@@ -17,11 +19,6 @@ pub(crate) fn restore_file_from_snapshot(source: &Path, target: &Path) -> Result
         true => Ok(()),
         false => bail!("error during execution of `cp`"),
     }
-}
-
-fn path_to_str(path: &Path) -> Result<&str> {
-    path.to_str()
-        .with_context(|| format!("could not convert path to str: {path:?}"))
 }
 
 pub(crate) fn ask_user_confirmation() -> Result<bool> {

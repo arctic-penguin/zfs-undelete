@@ -1,3 +1,4 @@
+mod misc;
 mod undelete;
 mod zfs;
 
