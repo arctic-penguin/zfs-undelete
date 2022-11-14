@@ -5,14 +5,25 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use path_absolutize::Absolutize;
 
+trait Zfs {
+    fn to_dataset(self) -> Result<Dataset>;
+}
+
+impl Zfs for PathBuf {
+    fn to_dataset(self) -> Result<Dataset> {
+        Dataset::new(self)
+    }
+}
+
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub(crate) struct Snapshot {
     path: PathBuf,
 }
 
 #[derive(Debug)]
-pub(crate) struct Mountpoint {
+pub(crate) struct Dataset {
     path: PathBuf,
+    snapshots: Vec<Snapshot>,
 }
 
 impl Snapshot {
@@ -28,7 +39,15 @@ impl Snapshot {
     }
 }
 
-impl Mountpoint {
+impl Dataset {
+    fn new(path: PathBuf) -> Result<Self> {
+        Ok(Self {
+            snapshots: Self::get_snapshots(path.clone())
+                .with_context(|| format!("could not get snapshots for dataset under {path:?}"))?,
+            path,
+        })
+    }
+
     /// iterate the path from the child to root, return the first zfs mountpoint
     pub(crate) fn find(path: &Path) -> Result<Self> {
         let filepath = path
@@ -37,7 +56,7 @@ impl Mountpoint {
             .to_path_buf();
         for parent in filepath.ancestors() {
             if is_zfs_dataset(parent)? {
-                return Ok(parent.to_owned().into());
+                return parent.to_owned().to_dataset();
             }
         }
         bail!("file does not reside under any ZFS dataset")
@@ -47,13 +66,12 @@ impl Mountpoint {
         path.iter().skip(self.path.ancestors().count()).collect()
     }
 
-    fn get_pathbuf(&self) -> PathBuf {
-        self.path.to_owned()
+    pub(crate) fn snapshots(&self) -> &[Snapshot] {
+        &self.snapshots
     }
 
     /// get snapshots in alphabetically ascending order
-    pub(crate) fn get_snapshots(&self) -> Result<Vec<Snapshot>> {
-        let mut path: PathBuf = self.get_pathbuf();
+    fn get_snapshots(mut path: PathBuf) -> Result<Vec<Snapshot>> {
         let subdir = PathBuf::from(".zfs/snapshot");
         path.push(subdir);
         let mut errors = vec![];
@@ -72,12 +90,6 @@ impl Mountpoint {
 
         result.sort_unstable();
         Ok(result)
-    }
-}
-
-impl From<PathBuf> for Mountpoint {
-    fn from(path: PathBuf) -> Self {
-        Self { path }
     }
 }
 
@@ -106,22 +118,22 @@ fn is_zfs_dataset(path: &Path) -> Result<bool> {
 mod test {
     use std::path::PathBuf;
 
-    use super::Mountpoint;
+    use super::Zfs;
 
     #[test]
     fn make_path_relative() {
         let all = PathBuf::from("/a/b/c");
-        let mountpoint = Mountpoint::from(PathBuf::from("/a"));
+        let mountpoint = PathBuf::from("/a").to_dataset().unwrap();
         let result = PathBuf::from("b/c");
         assert_eq!(mountpoint.get_relative_path(&all), result);
 
         let all = PathBuf::from("/a/b/c");
-        let mountpoint = Mountpoint::from(PathBuf::from("/"));
+        let mountpoint = PathBuf::from("/").to_dataset().unwrap();
         let result = PathBuf::from("a/b/c");
         assert_eq!(mountpoint.get_relative_path(&all), result);
 
         let all = PathBuf::from("/a/b/c");
-        let mountpoint = Mountpoint::from(PathBuf::from("/a/b"));
+        let mountpoint = PathBuf::from("/a/b").to_dataset().unwrap();
         let result = PathBuf::from("c");
         assert_eq!(mountpoint.get_relative_path(&all), result);
     }

@@ -20,11 +20,11 @@ impl Absolute for PathBuf {
 }
 
 pub(crate) fn find_newest_snapshot_containing_the_file(
-    mountpoint: zfs::Mountpoint,
+    dataset: zfs::Dataset,
     to_recover_relative_to_mountpoint: std::path::PathBuf,
 ) -> Result<std::path::PathBuf> {
-    let full_path_in_snapshot = mountpoint
-        .get_snapshots()?
+    let full_path_in_snapshot = dataset
+        .snapshots()
         .iter()
         .rev()
         .find_map(|snap| snap.contains_file(&to_recover_relative_to_mountpoint))

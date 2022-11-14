@@ -17,13 +17,11 @@ fn main() -> Result<()> {
 
     let to_recover_absolute = to_recover.make_absolute()?;
 
-    let mountpoint = zfs::Mountpoint::find(&to_recover_absolute)?;
-    let to_recover_relative_to_mountpoint = mountpoint.get_relative_path(&to_recover_absolute);
+    let dataset = zfs::Dataset::find(&to_recover_absolute)?;
+    let to_recover_relative_to_mountpoint = dataset.get_relative_path(&to_recover_absolute);
 
-    let full_path_in_snapshot = path::find_newest_snapshot_containing_the_file(
-        mountpoint,
-        to_recover_relative_to_mountpoint,
-    )?;
+    let full_path_in_snapshot =
+        path::find_newest_snapshot_containing_the_file(dataset, to_recover_relative_to_mountpoint)?;
 
     println!("found file:\n{full_path_in_snapshot:?}");
 
