@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let to_recover_relative_to_mountpoint = dataset.get_relative_path(&to_recover_absolute);
 
     let full_path_in_snapshot =
-        path::find_newest_snapshot_containing_the_file(dataset, to_recover_relative_to_mountpoint)?;
+        dataset.find_newest_snapshot_containing_the_file(to_recover_relative_to_mountpoint)?;
 
     println!("found file:\n{full_path_in_snapshot:?}");
 

@@ -2,18 +2,8 @@ use crate::misc::ToStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use path_absolutize::Absolutize;
-
-trait Zfs {
-    fn to_dataset(self) -> Result<Dataset>;
-}
-
-impl Zfs for PathBuf {
-    fn to_dataset(self) -> Result<Dataset> {
-        Dataset::new(self)
-    }
-}
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub(crate) struct Snapshot {
@@ -27,7 +17,7 @@ pub(crate) struct Dataset {
 }
 
 impl Snapshot {
-    /// check if the file is contained in the snapshot. Return its full path if found.
+    /// Check if the file is contained in the snapshot. Return its full path if found.
     pub(crate) fn contains_file(&self, path: &Path) -> Option<PathBuf> {
         let buf = self.path.clone();
         let actual = buf.join(path);
@@ -56,7 +46,7 @@ impl Dataset {
             .to_path_buf();
         for parent in filepath.ancestors() {
             if is_zfs_dataset(parent)? {
-                return parent.to_owned().to_dataset();
+                return parent.to_owned().try_into();
             }
         }
         bail!("file does not reside under any ZFS dataset")
@@ -66,11 +56,13 @@ impl Dataset {
         path.iter().skip(self.path.ancestors().count()).collect()
     }
 
+    /// Get a slice with references to all Snapshots under the Dataset.
     pub(crate) fn snapshots(&self) -> &[Snapshot] {
         &self.snapshots
     }
 
-    /// get snapshots in alphabetically ascending order
+    /// Get snapshots in alphabetically ascending order.
+    #[cfg(not(test))]
     fn get_snapshots(mut path: PathBuf) -> Result<Vec<Snapshot>> {
         let subdir = PathBuf::from(".zfs/snapshot");
         path.push(subdir);
@@ -90,6 +82,29 @@ impl Dataset {
 
         result.sort_unstable();
         Ok(result)
+    }
+
+    /// Mock the function to enable tests on Dataset.
+    #[cfg(test)]
+    fn get_snapshots(_path: PathBuf) -> Result<Vec<Snapshot>> {
+        Ok(vec![])
+    }
+
+    pub(crate) fn find_newest_snapshot_containing_the_file(
+        &self,
+        file: std::path::PathBuf,
+    ) -> Result<std::path::PathBuf> {
+        if file.is_absolute() {
+            bail!("path must be relative, not absolute")
+        }
+
+        let full_path_in_snapshot = self
+            .snapshots()
+            .iter()
+            .rev()
+            .find_map(|snap| snap.contains_file(&file))
+            .ok_or_else(|| anyhow!("file does not exist in any snapshot"))?;
+        Ok(full_path_in_snapshot)
     }
 }
 
@@ -114,27 +129,34 @@ fn is_zfs_dataset(path: &Path) -> Result<bool> {
     }
 }
 
+impl TryFrom<PathBuf> for Dataset {
+    type Error = anyhow::Error;
+
+    fn try_from(path: PathBuf) -> Result<Self> {
+        Self::new(path)
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use super::Dataset;
     use std::path::PathBuf;
-
-    use super::Zfs;
 
     #[test]
     fn make_path_relative() {
         let all = PathBuf::from("/a/b/c");
-        let mountpoint = PathBuf::from("/a").to_dataset().unwrap();
+        let dataset: Dataset = PathBuf::from("/a").try_into().unwrap();
         let result = PathBuf::from("b/c");
-        assert_eq!(mountpoint.get_relative_path(&all), result);
+        assert_eq!(dataset.get_relative_path(&all), result);
 
         let all = PathBuf::from("/a/b/c");
-        let mountpoint = PathBuf::from("/").to_dataset().unwrap();
+        let dataset: Dataset = PathBuf::from("/").try_into().unwrap();
         let result = PathBuf::from("a/b/c");
-        assert_eq!(mountpoint.get_relative_path(&all), result);
+        assert_eq!(dataset.get_relative_path(&all), result);
 
         let all = PathBuf::from("/a/b/c");
-        let mountpoint = PathBuf::from("/a/b").to_dataset().unwrap();
+        let dataset: Dataset = PathBuf::from("/a/b").try_into().unwrap();
         let result = PathBuf::from("c");
-        assert_eq!(mountpoint.get_relative_path(&all), result);
+        assert_eq!(dataset.get_relative_path(&all), result);
     }
 }
