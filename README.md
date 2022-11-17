@@ -5,6 +5,8 @@ an easy-to-use cli tool to recover files from zfs snapshots
 
 Use `zfs-undelete <file-to-restore>`. Works for file and folders.
 
+By default, it restores the last version it can find.
+
 Example:
 ```zsh
 $ pwd
@@ -21,6 +23,21 @@ Restore file? [y/N] y
 $ ls 
 screen.png  screen01.png  screen02.png
 ```
+
+Interactive mode:
+```zsh
+$ pwd
+/home/penguin/rust/zfs-undelete
+$ ls README.md
+ls: cannot access 'README.md': No such file or directory
+$ zfs-undelete -V README.md
+0: /home/.zfs/snapshot/znap_2022-11-17-1315_frequent, 1132 kB
+1: /home/.zfs/snapshot/znap_2022-11-14-0742_weekly, 75 B
+choose [0-1]: 0
+$ ls README.md
+README.md
+```
+
 
 ## Installation
 
