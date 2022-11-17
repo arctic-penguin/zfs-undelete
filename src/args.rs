@@ -5,11 +5,13 @@ use anyhow::bail;
 use anyhow::Context;
 use anyhow::Result;
 
+#[derive(Debug)]
 pub(crate) struct Arguments {
     pub(crate) mode: Mode,
     pub(crate) filename: PathBuf,
 }
 
+#[derive(Debug)]
 pub(crate) enum Mode {
     MostRecentVersion,
     AllVersions,
@@ -17,7 +19,7 @@ pub(crate) enum Mode {
 
 impl Mode {
     fn get_from_args(args: &mut Vec<String>) -> Self {
-        if args[0] == "-V" {
+        if args.last().expect("there's at least one element") == "-V" {
             args.pop().expect("there's at least one element");
             Self::AllVersions
         } else {

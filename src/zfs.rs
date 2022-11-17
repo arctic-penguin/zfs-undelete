@@ -1,8 +1,12 @@
 use crate::misc::ToStr;
+use std::fmt::Display;
+use std::fs::Metadata;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::SystemTime;
 
 use anyhow::{anyhow, bail, Context, Result};
+use itertools::Itertools;
 use path_absolutize::Absolutize;
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
@@ -10,10 +14,66 @@ pub(crate) struct Snapshot {
     path: PathBuf,
 }
 
+impl Display for Snapshot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.path.display().fmt(f)
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Dataset {
-    path: PathBuf,
+    pub(crate) path: PathBuf,
     snapshots: Vec<Snapshot>,
+}
+
+#[derive(Debug)]
+pub(crate) struct FileInfo {
+    pub(crate) mtime: SystemTime,
+    pub(crate) size: FileSize,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub(crate) struct FileSize {
+    value: usize,
+}
+
+impl From<u64> for FileSize {
+    fn from(value: u64) -> Self {
+        Self {
+            value: value as usize,
+        }
+    }
+}
+
+impl FileSize {
+    fn show(&self) -> String {
+        if self.value < 1_000 {
+            format!("{} B", self.value)
+        } else if self.value < 1_000_000 {
+            format!("{} kB", self.value)
+        } else if self.value < 1_000_000_000 {
+            format!("{} MB", self.value)
+        } else if self.value < 1_000_000_000_000 {
+            format!("{} GB", self.value)
+        } else {
+            panic!()
+        }
+    }
+}
+
+impl Display for FileSize {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.show())
+    }
+}
+
+impl From<Metadata> for FileInfo {
+    fn from(m: Metadata) -> Self {
+        Self {
+            mtime: m.modified().unwrap(),
+            size: m.len().into(),
+        }
+    }
 }
 
 impl Snapshot {
@@ -26,6 +86,22 @@ impl Snapshot {
         } else {
             None
         }
+    }
+
+    fn get_file_information(&self, file: &Path) -> Option<FileInfo> {
+        let file_absolute = self.path.join(file);
+        let result = file_absolute
+            .parent()
+            .expect("must have a parent")
+            .read_dir()
+            .ok()?
+            .find(|f| f.as_ref().unwrap().file_name() == file_absolute.file_name().unwrap())?
+            .ok()?
+            .metadata()
+            .ok()?
+            .into();
+
+        Some(result)
     }
 }
 
@@ -90,10 +166,7 @@ impl Dataset {
         Ok(vec![])
     }
 
-    pub(crate) fn find_newest_snapshot_containing_the_file(
-        &self,
-        file: std::path::PathBuf,
-    ) -> Result<std::path::PathBuf> {
+    pub(crate) fn find_newest_snapshot_containing_the_file(&self, file: &Path) -> Result<PathBuf> {
         if file.is_absolute() {
             bail!("path must be relative, not absolute")
         }
@@ -102,9 +175,32 @@ impl Dataset {
             .snapshots()
             .iter()
             .rev()
-            .find_map(|snap| snap.contains_file(&file))
+            .find_map(|snap| snap.contains_file(file))
             .ok_or_else(|| anyhow!("file does not exist in any snapshot"))?;
         Ok(full_path_in_snapshot)
+    }
+
+    pub(crate) fn get_absolute_path(&self, path: &PathBuf) -> PathBuf {
+        self.path.join(path)
+    }
+
+    /// Get unique versions of the file using st_mtime and st_size. Output is sorted in reverse
+    /// alphabetical order.
+    pub(crate) fn get_unique_versions(
+        &self,
+        to_recover: &Path,
+    ) -> Result<Vec<(&Snapshot, FileInfo)>> {
+        let result: Vec<_> = self
+            .snapshots
+            .iter()
+            .filter_map(|s| s.get_file_information(to_recover).map(|info| (s, info)))
+            .unique_by(|(_, f)| (f.mtime, f.size))
+            .rev()
+            .collect();
+        if result.is_empty() {
+            bail!("file does not exist in any snapshot")
+        }
+        Ok(result)
     }
 }
 

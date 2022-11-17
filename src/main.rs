@@ -19,14 +19,18 @@ fn main() -> Result<()> {
     let dataset = zfs::Dataset::find(&to_recover_absolute)?;
     let to_recover_relative_to_mountpoint = dataset.get_relative_path(&to_recover_absolute);
 
-    let full_path_in_snapshot =
-        dataset.find_newest_snapshot_containing_the_file(to_recover_relative_to_mountpoint)?;
-
-    println!("found file:\n{full_path_in_snapshot:?}");
-
-    if ui::user_wants_to_continue()? {
-        undelete::restore_file_from_snapshot(&full_path_in_snapshot, &to_recover_absolute)?;
+    match arguments.mode {
+        args::Mode::MostRecentVersion => {
+            undelete::restore_most_recent_version(dataset, to_recover_relative_to_mountpoint)
+        }
+        args::Mode::AllVersions => {
+            let to_restore =
+                undelete::choose_version_to_restore(&dataset, &to_recover_relative_to_mountpoint)?;
+            undelete::restore_specific_version(
+                dataset,
+                to_recover_relative_to_mountpoint,
+                to_restore,
+            )
+        }
     }
-
-    Ok(())
 }
