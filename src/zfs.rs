@@ -81,13 +81,16 @@ impl From<Metadata> for FileInfo {
 impl Snapshot {
     /// Check if the file is contained in the snapshot. Return its full path if found.
     pub(crate) fn contains_file(&self, path: &Path) -> Option<PathBuf> {
-        let buf = self.path.clone();
-        let actual = buf.join(path);
+        let actual = self.join(path);
         if actual.exists() {
             Some(actual)
         } else {
             None
         }
+    }
+
+    pub(crate) fn join(&self, path: &Path) -> PathBuf {
+        self.path.clone().join(path)
     }
 
     fn get_file_information(&self, file: &Path) -> Option<FileInfo> {

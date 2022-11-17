@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
 
@@ -18,14 +18,16 @@ pub(crate) fn restore_most_recent_version(dataset: Dataset, to_recover: PathBuf)
     Ok(())
 }
 
-pub(crate) fn restore_interactively(dataset: &Dataset, to_recover: &Path) -> Result<PathBuf> {
-    let unique_versions = dataset.get_unique_versions(to_recover)?;
-    let version = choose_version(unique_versions)?;
+pub(crate) fn restore_interactively(
+    dataset: Dataset,
+    to_recover_relative_to_mountpoint: PathBuf,
+) -> Result<()> {
+    let unique_versions = dataset.get_unique_versions(&to_recover_relative_to_mountpoint)?;
+    let (snapshot, _) = choose_version(unique_versions)?;
 
-    version
-        .0
-        .contains_file(to_recover)
-        .ok_or_else(|| unreachable!("cannot happen"))
+    let to_restore = snapshot.join(&to_recover_relative_to_mountpoint);
+
+    restore_specific_version(dataset, to_recover_relative_to_mountpoint, to_restore)
 }
 
 fn choose_version(unique_versions: Vec<(&Snapshot, FileInfo)>) -> Result<(&Snapshot, FileInfo)> {
@@ -42,6 +44,7 @@ fn choose_version(unique_versions: Vec<(&Snapshot, FileInfo)>) -> Result<(&Snaps
 
     Ok(version)
 }
+
 pub(crate) fn restore_specific_version(
     dataset: Dataset,
     to_recover_relative_to_mountpoint: PathBuf,

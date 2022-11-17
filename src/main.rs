@@ -22,14 +22,9 @@ fn main() -> Result<()> {
         args::Mode::MostRecentVersion => {
             undelete::restore_most_recent_version(dataset, to_recover_relative_to_mountpoint)
         }
+
         args::Mode::ChooseVersionInteractively => {
-            let to_restore =
-                undelete::restore_interactively(&dataset, &to_recover_relative_to_mountpoint)?;
-            undelete::restore_specific_version(
-                dataset,
-                to_recover_relative_to_mountpoint,
-                to_restore,
-            )
+            undelete::restore_interactively(dataset, to_recover_relative_to_mountpoint)
         }
     }
 }
