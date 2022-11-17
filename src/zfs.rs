@@ -107,7 +107,7 @@ impl Snapshot {
                         .file_name()
                         .expect("path ends in proper name, not '..'")
             })
-            .ok_or_else(|| anyhow!("could not find that should be there"))??
+            .ok_or_else(|| anyhow!("could not find file that should be there"))??
             .metadata()?
             .into();
 
