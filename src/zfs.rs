@@ -40,13 +40,13 @@ pub(crate) struct FileSize {
 impl From<u64> for FileSize {
     fn from(value: u64) -> Self {
         Self {
-            value: value as usize,
+            value: value.try_into().unwrap(),
         }
     }
 }
 
 impl FileSize {
-    fn show(&self) -> String {
+    fn show(self) -> String {
         if self.value < 1_000 {
             format!("{} B", self.value)
         } else if self.value < 1_000_000 {
@@ -198,11 +198,11 @@ impl Dataset {
         Ok(full_path_in_snapshot)
     }
 
-    pub(crate) fn get_absolute_path(&self, path: &PathBuf) -> PathBuf {
+    pub(crate) fn get_absolute_path(&self, path: &Path) -> PathBuf {
         self.path.join(path)
     }
 
-    /// Get unique versions of the file using st_mtime and st_size. Output is sorted in reverse
+    /// Get unique versions of the file using `st_mtime` and `st_size`. Output is sorted in reverse
     /// alphabetical order.
     pub(crate) fn get_unique_versions(
         &self,

@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use path_absolutize::Absolutize;
 
 pub(crate) trait Absolute {
-    /// Turn a relative into an absolute path, providing anyhow::Result<PathBuf>.
+    /// Turn a relative into an absolute path, providing `anyhow::Result<PathBuf>`.
     fn make_absolute(&self) -> Result<PathBuf>;
 }
 

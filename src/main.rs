@@ -20,11 +20,11 @@ fn main() -> Result<()> {
 
     match arguments.mode {
         args::Mode::MostRecentVersion => {
-            undelete::restore_most_recent_version(dataset, to_recover_relative_to_mountpoint)
+            undelete::restore_most_recent_version(&dataset, &to_recover_relative_to_mountpoint)
         }
 
         args::Mode::ChooseVersionInteractively => {
-            undelete::restore_interactively(dataset, to_recover_relative_to_mountpoint)
+            undelete::restore_interactively(&dataset, &to_recover_relative_to_mountpoint)
         }
     }
 }
