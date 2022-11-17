@@ -1,4 +1,5 @@
 mod args;
+mod cmd;
 mod misc;
 mod path;
 mod ui;
@@ -23,7 +24,7 @@ fn main() -> Result<()> {
         }
         args::Mode::ChooseVersionInteractively => {
             let to_restore =
-                undelete::choose_version_to_restore(&dataset, &to_recover_relative_to_mountpoint)?;
+                undelete::restore_interactively(&dataset, &to_recover_relative_to_mountpoint)?;
             undelete::restore_specific_version(
                 dataset,
                 to_recover_relative_to_mountpoint,
