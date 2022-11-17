@@ -232,10 +232,10 @@ fn is_zfs_dataset(path: &Path) -> Result<bool> {
     match Command::new("findmnt")
         .args(["--noheadings", path.to_str_anyhow()?])
         .output()
-        .with_context(|| "failed to run `findmnt`")
+        .context("failed to run `findmnt`")
     {
         Ok(output) => Ok(String::from_utf8(output.stdout)
-            .with_context(|| "zfs dataset name contains invalid UTF8")?
+            .context("zfs dataset name contains invalid UTF8")?
             .contains("zfs")
             && output.status.success()),
         Err(e) => bail!("could not determine if {path:?} is a zfs dataset\n{e:?}"),

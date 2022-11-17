@@ -17,7 +17,7 @@ fn restore_file_from_snapshot(source: &Path, target: &Path) -> Result<()> {
     match Command::new("cp")
         .args(["-a", source_str, target_str])
         .status()
-        .with_context(|| "error running `cp`")?
+        .context("error running `cp`")?
         .success()
     {
         true => Ok(()),

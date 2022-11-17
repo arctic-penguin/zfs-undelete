@@ -12,7 +12,7 @@ impl Absolute for PathBuf {
     fn make_absolute(&self) -> Result<PathBuf> {
         Ok(self
             .absolutize()
-            .with_context(|| "could not resolve absolute path of file")?
+            .context("could not resolve absolute path of file")?
             .to_path_buf())
     }
 }
