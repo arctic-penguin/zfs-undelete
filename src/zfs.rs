@@ -128,7 +128,7 @@ impl Dataset {
     /// relative to the dataset.
     pub(crate) fn find(path: &Path) -> Result<(Self, PathBuf)> {
         let instance = Self::find_dataset(path)?;
-        let path = instance.get_relative_path(path);
+        let path = instance.get_relative_path(path)?;
         Ok((instance, path))
     }
 
@@ -145,9 +145,18 @@ impl Dataset {
         bail!("file does not reside under any ZFS dataset")
     }
 
-    pub(crate) fn get_relative_path(&self, path: &Path) -> PathBuf {
-        // TODO does not check if the paths actually match
-        path.iter().skip(self.path.ancestors().count()).collect()
+    pub(crate) fn get_relative_path(&self, path: &Path) -> Result<PathBuf> {
+        let mut iterator = path.iter();
+
+        // order is important! the iterator that is exhausted earlier must be the first iterator to
+        // be zipped
+        for (e1, e2) in self.path.iter().zip(&mut iterator) {
+            if e1 != e2 {
+                bail!("paths are not related")
+            }
+        }
+
+        Ok(iterator.collect())
     }
 
     /// Get a slice with references to all Snapshots under the Dataset.
@@ -265,16 +274,16 @@ mod test {
         let all = PathBuf::from("/a/b/c");
         let dataset: Dataset = PathBuf::from("/a").try_into().unwrap();
         let result = PathBuf::from("b/c");
-        assert_eq!(dataset.get_relative_path(&all), result);
+        assert_eq!(dataset.get_relative_path(&all).unwrap(), result);
 
         let all = PathBuf::from("/a/b/c");
         let dataset: Dataset = PathBuf::from("/").try_into().unwrap();
         let result = PathBuf::from("a/b/c");
-        assert_eq!(dataset.get_relative_path(&all), result);
+        assert_eq!(dataset.get_relative_path(&all).unwrap(), result);
 
         let all = PathBuf::from("/a/b/c");
         let dataset: Dataset = PathBuf::from("/a/b").try_into().unwrap();
         let result = PathBuf::from("c");
-        assert_eq!(dataset.get_relative_path(&all), result);
+        assert_eq!(dataset.get_relative_path(&all).unwrap(), result);
     }
 }
