@@ -123,8 +123,15 @@ impl Dataset {
         })
     }
 
-    /// iterate the path from the child to root, return the first zfs mountpoint
-    pub(crate) fn find(path: &Path) -> Result<Self> {
+    /// Iterate the absolute path from the child to root, return the first zfs mountpoint and path
+    /// relative to the dataset.
+    pub(crate) fn find(path: &Path) -> Result<(Self, PathBuf)> {
+        let instance = Self::find_dataset(path)?;
+        let path = instance.get_relative_path(path);
+        Ok((instance, path))
+    }
+
+    fn find_dataset(path: &Path) -> Result<Self> {
         let filepath = path
             .absolutize()
             .with_context(|| format!("could not resolve filepath {path:?}"))?
@@ -138,6 +145,7 @@ impl Dataset {
     }
 
     pub(crate) fn get_relative_path(&self, path: &Path) -> PathBuf {
+        // TODO does not check if the paths actually match
         path.iter().skip(self.path.ancestors().count()).collect()
     }
 

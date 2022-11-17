@@ -14,14 +14,14 @@ pub(crate) struct Arguments {
 #[derive(Debug)]
 pub(crate) enum Mode {
     MostRecentVersion,
-    AllVersions,
+    ChooseVersionInteractively,
 }
 
 impl Mode {
     fn get_from_args(args: &mut Vec<String>) -> Self {
         if args.last().expect("there's at least one element") == "-V" {
             args.pop().expect("there's at least one element");
-            Self::AllVersions
+            Self::ChooseVersionInteractively
         } else {
             Self::MostRecentVersion
         }

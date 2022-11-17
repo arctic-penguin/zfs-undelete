@@ -15,15 +15,13 @@ fn main() -> Result<()> {
     }
 
     let to_recover_absolute = arguments.filename.absolutize()?;
-
-    let dataset = zfs::Dataset::find(&to_recover_absolute)?;
-    let to_recover_relative_to_mountpoint = dataset.get_relative_path(&to_recover_absolute);
+    let (dataset, to_recover_relative_to_mountpoint) = zfs::Dataset::find(&to_recover_absolute)?;
 
     match arguments.mode {
         args::Mode::MostRecentVersion => {
             undelete::restore_most_recent_version(dataset, to_recover_relative_to_mountpoint)
         }
-        args::Mode::AllVersions => {
+        args::Mode::ChooseVersionInteractively => {
             let to_restore =
                 undelete::choose_version_to_restore(&dataset, &to_recover_relative_to_mountpoint)?;
             undelete::restore_specific_version(
