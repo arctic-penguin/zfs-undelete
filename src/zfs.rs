@@ -93,13 +93,12 @@ impl Snapshot {
         self.path.clone().join(path)
     }
 
-    fn get_file_information(&self, file: &Path) -> Option<FileInfo> {
+    fn get_file_information(&self, file: &Path) -> Result<FileInfo> {
         let file_absolute = self.path.join(file);
         let result = file_absolute
             .parent()
             .expect("must have a parent")
-            .read_dir()
-            .ok()?
+            .read_dir()?
             .find(|f| {
                 f.as_ref()
                     .expect("we have permission to read the file")
@@ -107,13 +106,12 @@ impl Snapshot {
                     == file_absolute
                         .file_name()
                         .expect("path ends in proper name, not '..'")
-            })?
-            .ok()?
-            .metadata()
-            .ok()?
+            })
+            .ok_or_else(|| anyhow!("could not find that should be there"))??
+            .metadata()?
             .into();
 
-        Some(result)
+        Ok(result)
     }
 }
 
@@ -213,7 +211,11 @@ impl Dataset {
         let result: Vec<_> = self
             .snapshots
             .iter()
-            .filter_map(|s| s.get_file_information(to_recover).map(|info| (s, info)))
+            .filter_map(|s| {
+                s.get_file_information(to_recover)
+                    .ok()
+                    .map(|info| (s, info))
+            })
             .unique_by(|(_, f)| (f.mtime, f.size))
             .rev()
             .collect();
