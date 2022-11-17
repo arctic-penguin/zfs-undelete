@@ -55,8 +55,10 @@ impl FileSize {
             format!("{} MB", self.value)
         } else if self.value < 1_000_000_000_000 {
             format!("{} GB", self.value)
+        } else if self.value < 1_000_000_000_000_000 {
+            format!("{} TB", self.value)
         } else {
-            panic!()
+            panic!("files larger than 1 Petabyte? Really?")
         }
     }
 }
@@ -70,7 +72,7 @@ impl Display for FileSize {
 impl From<Metadata> for FileInfo {
     fn from(m: Metadata) -> Self {
         Self {
-            mtime: m.modified().unwrap(),
+            mtime: m.modified().expect("should work on Linux"),
             size: m.len().into(),
         }
     }
@@ -95,7 +97,14 @@ impl Snapshot {
             .expect("must have a parent")
             .read_dir()
             .ok()?
-            .find(|f| f.as_ref().unwrap().file_name() == file_absolute.file_name().unwrap())?
+            .find(|f| {
+                f.as_ref()
+                    .expect("we have permission to read the file")
+                    .file_name()
+                    == file_absolute
+                        .file_name()
+                        .expect("path ends in proper name, not '..'")
+            })?
             .ok()?
             .metadata()
             .ok()?
