@@ -9,7 +9,7 @@ use crate::zfs::{Dataset, FileInfo, Snapshot};
 pub(crate) fn restore_most_recent_version(dataset: &Dataset, to_recover: &Path) -> Result<()> {
     let full_path_in_snapshot = dataset.find_newest_snapshot_containing_the_file(to_recover)?;
 
-    println!("found file:\n{full_path_in_snapshot:?}");
+    println!("found file:\n  {}", full_path_in_snapshot.display());
 
     if ui::user_wants_to_continue()? {
         let full_path_in_dataset = dataset.get_absolute_path(to_recover);
