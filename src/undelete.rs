@@ -1,8 +1,9 @@
+use std::io::{stdout, Write};
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
 
-use crate::cmd::copy;
+use crate::cmd::{copy, ls};
 use crate::ui;
 use crate::zfs::{Dataset, FileInfo, Snapshot};
 
@@ -23,16 +24,21 @@ pub(crate) fn restore_interactively(
     to_recover_relative_to_mountpoint: &Path,
 ) -> Result<()> {
     let unique_versions = dataset.get_unique_versions(to_recover_relative_to_mountpoint)?;
-    let (snapshot, _) = choose_version(unique_versions)?;
+    let snapshot = choose_version(unique_versions, to_recover_relative_to_mountpoint)?;
 
     let to_restore = snapshot.join(to_recover_relative_to_mountpoint);
 
     restore_specific_version(dataset, to_recover_relative_to_mountpoint, &to_restore)
 }
 
-fn choose_version(unique_versions: Vec<(&Snapshot, FileInfo)>) -> Result<(&Snapshot, FileInfo)> {
-    for (i, v) in unique_versions.iter().enumerate() {
-        println!("{i}: {}, {}", v.0, v.1.size);
+fn choose_version<'a>(
+    unique_versions: Vec<(&'a Snapshot, FileInfo)>,
+    to_recover_relative_to_mountpoint: &Path,
+) -> Result<&'a Snapshot> {
+    for (i, (snap, _)) in unique_versions.iter().enumerate() {
+        print!("{i}: ");
+        stdout().lock().flush()?;
+        ls(to_recover_relative_to_mountpoint, snap.path())?;
     }
 
     let choice = ui::ask_user_for_version(unique_versions.len())?;
@@ -40,6 +46,7 @@ fn choose_version(unique_versions: Vec<(&Snapshot, FileInfo)>) -> Result<(&Snaps
     let version = unique_versions
         .into_iter()
         .nth(choice)
+        .map(|(snap, _)| snap)
         .ok_or_else(|| anyhow!("invalid answer"))?;
 
     Ok(version)

@@ -99,6 +99,10 @@ impl Snapshot {
         }
     }
 
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+
     pub(crate) fn join(&self, path: &Path) -> PathBuf {
         self.path.clone().join(path)
     }
