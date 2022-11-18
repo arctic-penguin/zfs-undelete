@@ -45,18 +45,28 @@ impl From<u64> for FileSize {
     }
 }
 
+trait Divide {
+    fn div(&self, other: f64) -> usize;
+}
+
+impl Divide for usize {
+    fn div(&self, other: f64) -> usize {
+        ((*self as f64) / other).trunc() as usize
+    }
+}
+
 impl FileSize {
-    fn show(self) -> String {
-        if self.value < 1_000 {
+    fn show(&self) -> String {
+        if self.value < 1e3 as usize {
             format!("{} B", self.value)
-        } else if self.value < 1_000_000 {
-            format!("{} kB", self.value)
-        } else if self.value < 1_000_000_000 {
-            format!("{} MB", self.value)
-        } else if self.value < 1_000_000_000_000 {
-            format!("{} GB", self.value)
-        } else if self.value < 1_000_000_000_000_000 {
-            format!("{} TB", self.value)
+        } else if self.value < 1e6 as usize {
+            format!("{} kB", self.value.div(1e3))
+        } else if self.value < 1e9 as usize {
+            format!("{} MB", self.value.div(1e6))
+        } else if self.value < 1e12 as usize {
+            format!("{} GB", self.value.div(1e9))
+        } else if self.value < 1e15 as usize {
+            format!("{} TB", self.value.div(1e12))
         } else {
             panic!("files larger than 1 Petabyte? Really?")
         }
