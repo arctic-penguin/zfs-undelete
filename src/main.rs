@@ -13,7 +13,7 @@ use path_absolutize::Absolutize;
 use undelete::Undelete;
 
 fn main() -> Result<()> {
-    let conf = config::Config::load()?;
+    let conf = config::Config::load().unwrap_or_default();
     let arguments = args::Arguments::get_args()?;
     if arguments.filename.exists() {
         bail!("Cannot restore already existing file.");

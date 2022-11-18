@@ -38,3 +38,12 @@ fn get_xdg_config_home() -> Result<PathBuf> {
 fn get_home_dir() -> Result<PathBuf> {
     Ok(env::var("HOME").context("$HOME not declared")?.into())
 }
+
+impl Default for Config {
+    fn default() -> Self {
+        println!("warning: no config file found, falling back to default config");
+        Self {
+            ls_command: "ls".to_owned(),
+        }
+    }
+}
