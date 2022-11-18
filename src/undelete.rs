@@ -53,13 +53,20 @@ fn ask_restore_snapshot_version(
     unique_versions: &Vec<&Snapshot>,
     to_recover_relative_to_mountpoint: &Path,
 ) -> Result<usize, anyhow::Error> {
+    show_enumerated_snapshots(unique_versions, to_recover_relative_to_mountpoint)?;
+    ui::ask_user_for_version(unique_versions.len())
+}
+
+fn show_enumerated_snapshots(
+    unique_versions: &[&Snapshot],
+    to_recover_relative_to_mountpoint: &Path,
+) -> Result<(), anyhow::Error> {
     for (i, snap) in unique_versions.iter().enumerate() {
         print!("{i}: ");
         stdout().lock().flush()?;
         ls(to_recover_relative_to_mountpoint, snap.path())?;
     }
-
-    ui::ask_user_for_version(unique_versions.len())
+    Ok(())
 }
 
 fn ask_restore_only_snapshot(
