@@ -21,11 +21,11 @@ pub(crate) fn copy(source: &Path, target: &Path) -> Result<()> {
     }
 }
 
-pub(crate) fn ls(file: &Path, workdir: &Path) -> Result<()> {
+pub(crate) fn ls(file: &Path, workdir: &Path, ls_command: &str) -> Result<()> {
     let file = file.to_str_anyhow()?;
     let dir = workdir.to_str_anyhow()?;
 
-    if Command::new("lsd")
+    if Command::new(ls_command)
         .args(["-dhl", file])
         .current_dir(dir)
         .status()

@@ -1,31 +1,14 @@
 use std::env::args;
 use std::path::PathBuf;
 
-use anyhow::bail;
-use anyhow::Context;
-use anyhow::Result;
+use anyhow::{bail, Context, Result};
+
+use crate::mode::Mode;
 
 #[derive(Debug)]
 pub(crate) struct Arguments {
     pub(crate) mode: Mode,
     pub(crate) filename: PathBuf,
-}
-
-#[derive(Debug)]
-pub(crate) enum Mode {
-    MostRecentVersion,
-    ChooseVersionInteractively,
-}
-
-impl Mode {
-    fn get_from_args(args: &mut Vec<String>) -> Self {
-        if args.last().expect("there's at least one element") == "-V" {
-            args.pop().expect("there's at least one element");
-            Self::ChooseVersionInteractively
-        } else {
-            Self::MostRecentVersion
-        }
-    }
 }
 
 impl Arguments {
