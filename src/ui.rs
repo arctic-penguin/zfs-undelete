@@ -16,7 +16,7 @@ pub(crate) fn user_wants_to_continue() -> Result<bool> {
 pub(crate) fn ask_user_for_version(num_items: usize) -> Result<usize> {
     print!("choose [0-{}]: ", num_items - 1);
 
-    io::stdout().lock().flush()?;
+    io::stdout().flush()?;
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;
     let choice = buf.trim().parse()?;

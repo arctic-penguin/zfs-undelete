@@ -209,7 +209,7 @@ impl Dataset {
 
     pub(crate) fn find_newest_snapshot_containing_the_file(&self, file: &Path) -> Result<PathBuf> {
         if file.is_absolute() {
-            bail!("path must be relative, not absolute")
+            panic!("path must be relative, not absolute")
         }
 
         let full_path_in_snapshot = self
@@ -240,9 +240,11 @@ impl Dataset {
             .map(|(s, _)| s)
             .rev()
             .collect();
+
         if result.is_empty() {
             bail!("file does not exist in any snapshot")
         }
+
         Ok(result)
     }
 }
