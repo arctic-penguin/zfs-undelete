@@ -29,61 +29,14 @@ pub(crate) struct Dataset {
 #[derive(Debug)]
 struct FileInfo {
     pub(crate) mtime: SystemTime,
-    pub(crate) size: FileSize,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub(crate) struct FileSize {
-    value: usize,
-}
-
-impl From<u64> for FileSize {
-    fn from(value: u64) -> Self {
-        Self {
-            value: value.try_into().unwrap(),
-        }
-    }
-}
-
-trait Divide {
-    fn div(&self, other: f64) -> usize;
-}
-
-impl Divide for usize {
-    fn div(&self, other: f64) -> usize {
-        ((*self as f64) / other).trunc() as usize
-    }
-}
-
-impl FileSize {
-    fn show(&self) -> String {
-        if self.value < 1e3 as usize {
-            format!("{} B", self.value)
-        } else if self.value < 1e6 as usize {
-            format!("{} kB", self.value.div(1e3))
-        } else if self.value < 1e9 as usize {
-            format!("{} MB", self.value.div(1e6))
-        } else if self.value < 1e12 as usize {
-            format!("{} GB", self.value.div(1e9))
-        } else if self.value < 1e15 as usize {
-            format!("{} TB", self.value.div(1e12))
-        } else {
-            panic!("files larger than 1 Petabyte? Really?")
-        }
-    }
-}
-
-impl Display for FileSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.show())
-    }
+    pub(crate) size: usize,
 }
 
 impl From<Metadata> for FileInfo {
     fn from(m: Metadata) -> Self {
         Self {
             mtime: m.modified().expect("should work on Linux"),
-            size: m.len().into(),
+            size: m.len() as usize,
         }
     }
 }
