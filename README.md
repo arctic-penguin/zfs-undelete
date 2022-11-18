@@ -41,6 +41,7 @@ README.md
 
 ## Installation
 
+### using rust
 with cargo:
 ```zsh
 $ cargo install zfs-undelete
@@ -51,6 +52,15 @@ from source:
 $ git clone https://github.com/arctic-penguin/zfs-undelete
 $ cd zfs-undelete
 $ cargo install --path .
+```
+
+### Arch Linux
+```zsh
+$ paru -S zfs-undelete
+```
+or
+```zsh
+$ paru -S zfs-undelete-git
 ```
 
 ## Dependencies
