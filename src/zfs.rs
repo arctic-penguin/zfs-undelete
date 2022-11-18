@@ -27,7 +27,7 @@ pub(crate) struct Dataset {
 }
 
 #[derive(Debug)]
-pub(crate) struct FileInfo {
+struct FileInfo {
     pub(crate) mtime: SystemTime,
     pub(crate) size: FileSize,
 }
@@ -227,10 +227,7 @@ impl Dataset {
 
     /// Get unique versions of the file using `st_mtime` and `st_size`. Output is sorted in reverse
     /// alphabetical order.
-    pub(crate) fn get_unique_versions(
-        &self,
-        to_recover: &Path,
-    ) -> Result<Vec<(&Snapshot, FileInfo)>> {
+    pub(crate) fn get_unique_versions(&self, to_recover: &Path) -> Result<Vec<&Snapshot>> {
         let result: Vec<_> = self
             .snapshots
             .iter()
@@ -240,6 +237,7 @@ impl Dataset {
                     .map(|info| (s, info))
             })
             .unique_by(|(_, f)| (f.mtime, f.size))
+            .map(|(s, _)| s)
             .rev()
             .collect();
         if result.is_empty() {

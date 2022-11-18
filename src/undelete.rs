@@ -1,11 +1,11 @@
 use std::io::{stdout, Write};
 use std::path::Path;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 
 use crate::cmd::{copy, ls};
-use crate::ui;
-use crate::zfs::{Dataset, FileInfo, Snapshot};
+use crate::ui::{self, user_wants_to_continue};
+use crate::zfs::{Dataset, Snapshot};
 
 pub(crate) fn restore_most_recent_version(dataset: &Dataset, to_recover: &Path) -> Result<()> {
     let full_path_in_snapshot = dataset.find_newest_snapshot_containing_the_file(to_recover)?;
@@ -32,24 +32,50 @@ pub(crate) fn restore_interactively(
 }
 
 fn choose_version<'a>(
-    unique_versions: Vec<(&'a Snapshot, FileInfo)>,
+    unique_versions: Vec<&'a Snapshot>,
     to_recover_relative_to_mountpoint: &Path,
 ) -> Result<&'a Snapshot> {
-    for (i, (snap, _)) in unique_versions.iter().enumerate() {
+    let choice = if unique_versions.len() == 1 {
+        ask_restore_only_snapshot(&unique_versions, to_recover_relative_to_mountpoint)?
+    } else {
+        ask_restore_snapshot_version(&unique_versions, to_recover_relative_to_mountpoint)?
+    };
+
+    let version = unique_versions
+        .into_iter()
+        .nth(choice)
+        .ok_or_else(|| anyhow!("invalid answer"))?;
+
+    Ok(version)
+}
+
+fn ask_restore_snapshot_version(
+    unique_versions: &Vec<&Snapshot>,
+    to_recover_relative_to_mountpoint: &Path,
+) -> Result<usize, anyhow::Error> {
+    for (i, snap) in unique_versions.iter().enumerate() {
         print!("{i}: ");
         stdout().lock().flush()?;
         ls(to_recover_relative_to_mountpoint, snap.path())?;
     }
 
-    let choice = ui::ask_user_for_version(unique_versions.len())?;
+    ui::ask_user_for_version(unique_versions.len())
+}
 
-    let version = unique_versions
-        .into_iter()
-        .nth(choice)
-        .map(|(snap, _)| snap)
-        .ok_or_else(|| anyhow!("invalid answer"))?;
+fn ask_restore_only_snapshot(
+    unique_versions: &[&Snapshot],
+    to_recover_relative_to_mountpoint: &Path,
+) -> Result<usize, anyhow::Error> {
+    let snapshot = &unique_versions.get(0).expect("contains one value");
+    ls(to_recover_relative_to_mountpoint, snapshot.path())?;
 
-    Ok(version)
+    let result = if user_wants_to_continue()? {
+        0
+    } else {
+        bail!("user does not want to restore");
+    };
+
+    Ok(result)
 }
 
 pub(crate) fn restore_specific_version(
