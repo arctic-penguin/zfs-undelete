@@ -25,13 +25,12 @@ impl Config {
 }
 
 fn get_xdg_config_home() -> Result<PathBuf> {
-    match env::var("XDG_CONFIG_HOME") {
-        Ok(s) => Ok(s.into()),
-        _ => {
-            let mut home = get_home_dir()?;
-            home.push(".config");
-            Ok(home)
-        }
+    if let Ok(s) = env::var("XDG_CONFIG_HOME") {
+        Ok(s.into())
+    } else {
+        let mut home = get_home_dir()?;
+        home.push(".config");
+        Ok(home)
     }
 }
 
