@@ -91,7 +91,7 @@ impl Dataset {
         })
     }
 
-    /// Iterate the absolute path from the child to root, return the first zfs mountpoint and path
+    /// Traverse the absolute path from the child to root, return the first zfs mountpoint and path
     /// relative to the dataset.
     pub(crate) fn find(path: &Path) -> Result<(Self, PathBuf)> {
         let instance = Self::find_dataset(path)?;
@@ -215,7 +215,8 @@ fn is_zfs_dataset(path: &Path, datasets: &[PathBuf]) -> bool {
     datasets.iter().any(|d| d == path)
 }
 
-/// Get a Vec of paths of all currently mounted zfs datasets.
+/// Get a Vec of paths of all currently mounted zfs datasets. The argument must match the structure
+/// laid out in `get_zfs_list_output`.
 fn get_mounted_datasets(output: &str) -> Vec<PathBuf> {
     let result = output
         .lines()
