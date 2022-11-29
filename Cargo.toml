@@ -7,8 +7,6 @@ description = "an easy-to-use CLI tool to recover files from zfs snapshots"
 repository = "https://github.com/arctic-penguin/zfs-undelete"
 license = "GPL-3.0-or-later"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [profile.release]
 strip = true
 
