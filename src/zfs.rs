@@ -105,7 +105,7 @@ impl Dataset {
             .with_context(|| format!("could not resolve filepath {path:?}"))?
             .to_path_buf();
 
-        let mounted_datasets = get_mounted_datasets(&get_zfs_list_output()?)?;
+        let mounted_datasets = get_mounted_datasets(&get_zfs_list_output()?);
 
         for parent in filepath.ancestors() {
             if is_zfs_dataset(parent, &mounted_datasets) {
@@ -216,8 +216,8 @@ fn is_zfs_dataset(path: &Path, datasets: &[PathBuf]) -> bool {
 }
 
 /// Get a Vec of paths of all currently mounted zfs datasets.
-fn get_mounted_datasets(output: &str) -> Result<Vec<PathBuf>> {
-    let something = output
+fn get_mounted_datasets(output: &str) -> Vec<PathBuf> {
+    let result = output
         .lines()
         .map(|l| l.split_terminator('\t').collect::<Vec<_>>())
         .filter(|split| {
@@ -228,7 +228,7 @@ fn get_mounted_datasets(output: &str) -> Result<Vec<PathBuf>> {
         })
         .map(|split| split.get(1).expect("has a 'mountpoint' column").into())
         .collect();
-    Ok(something)
+    result
 }
 
 /// ask zfs for name, mountpoint and mount-status of all datasets.
