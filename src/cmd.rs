@@ -29,11 +29,11 @@ pub(crate) fn ls(file: &Path, workdir: &Path, ls_command: &str) -> Result<()> {
         .args(["-dhl", file])
         .current_dir(dir)
         .status()
-        .context("error running `lsd`")?
+        .with_context(|| format!("running ls command '{ls_command}'"))?
         .success()
     {
         Ok(())
     } else {
-        bail!("error during execution of `lsd`")
+        bail!("execution of 'ls' command")
     }
 }
