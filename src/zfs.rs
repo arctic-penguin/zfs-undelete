@@ -64,8 +64,9 @@ impl Snapshot {
         let file_absolute = self.path.join(file);
         let result = file_absolute
             .parent()
-            .expect("must have a parent")
-            .read_dir()?
+            .context("must have a parent")?
+            .read_dir()
+            .context("reading dir")?
             .find(|f| {
                 f.as_ref()
                     .expect("we have permission to read the file")

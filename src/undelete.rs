@@ -59,24 +59,40 @@ impl Undelete {
         let unique_versions = self
             .dataset
             .get_unique_versions(&self.to_recover_relative_to_mountpoint)?;
-        let snapshot = self.choose_version(unique_versions)?;
+        self.show_enumerated_snapshots(&unique_versions)?;
+
+        let snapshot;
+        loop {
+            match self.choose_version(&unique_versions) {
+                Ok(snap) => {
+                    snapshot = snap;
+                    break;
+                }
+                Err(e) => println!("{e}"),
+            }
+        }
 
         let to_restore = snapshot.join(&self.to_recover_relative_to_mountpoint);
 
         self.restore_specific_version(&to_restore)
     }
 
-    fn choose_version<'a>(&self, unique_versions: Vec<&'a Snapshot>) -> Result<&'a Snapshot> {
-        let choice = if unique_versions.len() == 1 {
-            self.ask_restore_only_snapshot(&unique_versions)?
+    fn choose_version<'a>(&self, unique_versions: &Vec<&'a Snapshot>) -> Result<&'a Snapshot> {
+        let length = unique_versions.len();
+
+        let choice = if length == 1 {
+            self.ask_restore_only_snapshot(unique_versions)?
         } else {
-            self.ask_restore_snapshot_version(&unique_versions)?
+            let choice = self.ask_restore_snapshot_version(unique_versions)?;
+            if choice >= length {
+                bail!("invalid answer")
+            }
+            choice
         };
 
         let version = unique_versions
-            .into_iter()
-            .nth(choice)
-            .ok_or_else(|| anyhow!("invalid answer"))?;
+            .get(choice)
+            .ok_or_else(|| anyhow!("this should not happen"))?;
 
         Ok(version)
     }
@@ -85,7 +101,6 @@ impl Undelete {
         &self,
         unique_versions: &Vec<&Snapshot>,
     ) -> Result<usize, anyhow::Error> {
-        self.show_enumerated_snapshots(unique_versions)?;
         ui::ask_user_for_version(unique_versions.len())
     }
 
