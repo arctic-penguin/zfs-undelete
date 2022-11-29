@@ -1,4 +1,3 @@
-use crate::misc::ToStr;
 use std::fmt::Display;
 use std::fs::Metadata;
 use std::path::{Path, PathBuf};
@@ -105,11 +104,15 @@ impl Dataset {
             .absolutize()
             .with_context(|| format!("could not resolve filepath {path:?}"))?
             .to_path_buf();
+
+        let mounted_datasets = get_mounted_datasets(&get_zfs_list_output()?)?;
+
         for parent in filepath.ancestors() {
-            if is_zfs_dataset(parent)? {
+            if is_zfs_dataset(parent, &mounted_datasets) {
                 return parent.to_owned().try_into();
             }
         }
+
         bail!("file does not reside under any ZFS dataset")
     }
 
@@ -207,18 +210,45 @@ impl From<PathBuf> for Snapshot {
     }
 }
 
-/// check if a path is a zfs mountpoint using findmnt
-fn is_zfs_dataset(path: &Path) -> Result<bool> {
-    match Command::new("findmnt")
-        .args(["--noheadings", path.to_str_anyhow()?])
+/// check if a path is a zfs mountpoint
+fn is_zfs_dataset(path: &Path, datasets: &[PathBuf]) -> bool {
+    datasets.iter().any(|d| d == path)
+}
+
+/// Get a Vec of paths of all currently mounted zfs datasets.
+fn get_mounted_datasets(output: &str) -> Result<Vec<PathBuf>> {
+    let something = output
+        .lines()
+        .map(|l| l.split_terminator('\t').collect::<Vec<_>>())
+        .filter(|split| {
+            split
+                .get(2)
+                .expect("has a 'mounted' column")
+                .contains("yes")
+        })
+        .map(|split| split.get(1).expect("has a 'mountpoint' column").into())
+        .collect();
+    Ok(something)
+}
+
+/// ask zfs for name, mountpoint and mount-status of all datasets.
+fn get_zfs_list_output() -> Result<String> {
+    match Command::new("zfs")
+        .args([
+            "list",
+            "-t", // only datasets
+            "filesystem",
+            "-H", // no header
+            "-o", // only specific columns
+            "name,mountpoint,mounted",
+        ])
         .output()
-        .context("failed to run `findmnt`")
+        .context("failed to run `zfs list`")
     {
-        Ok(output) => Ok(String::from_utf8(output.stdout)
-            .context("zfs dataset name contains invalid UTF8")?
-            .contains("zfs")
-            && output.status.success()),
-        Err(e) => bail!("could not determine if {path:?} is a zfs dataset\n{e:?}"),
+        Ok(output) => {
+            Ok(String::from_utf8(output.stdout).context("could not parse output of `zfs list`")?)
+        }
+        _ => bail!("something went wrong when running `zfs list`"),
     }
 }
 

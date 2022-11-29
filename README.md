@@ -63,9 +63,6 @@ or
 $ paru -S zfs-undelete-git
 ```
 
-## Dependencies
-Requires the `findmnt` binary, which should be available on most systems.
-
 ## How does it work?
 If the provided file path is located under a zfs dataset, `zfs-undelete` searches all snapshots of the dataset in reverse alphabetical order for the file.
 It will restore the first file it finds.
