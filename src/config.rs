@@ -13,11 +13,15 @@ pub(crate) struct Config {
 impl Config {
     /// Load the program config from file. Apply defaults if no value provided for a config key.
     pub(crate) fn load() -> Result<Self> {
+        let mut this = Self::default();
+
         let conf_file = Self::get_config_file().context("could not find config file")?;
+        if !conf_file.exists() {
+            return Ok(this);
+        }
+
         let content = fs::read_to_string(&conf_file)
             .with_context(|| format!("reading config file {conf_file:?}"))?;
-
-        let mut this = Self::default();
 
         for line in content.lines() {
             let mut split = line.split('=');
