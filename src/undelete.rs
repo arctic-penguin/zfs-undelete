@@ -83,7 +83,7 @@ impl Undelete {
         let choice = if length == 1 {
             self.ask_restore_only_snapshot(unique_versions)?
         } else {
-            let choice = self.ask_restore_snapshot_version(unique_versions)?;
+            let choice = ui::ask_user_for_version(unique_versions.len())?;
             if choice >= length {
                 bail!("invalid answer")
             }
@@ -95,13 +95,6 @@ impl Undelete {
             .ok_or_else(|| anyhow!("this should not happen"))?;
 
         Ok(version)
-    }
-
-    fn ask_restore_snapshot_version(
-        &self,
-        unique_versions: &Vec<&Snapshot>,
-    ) -> Result<usize, anyhow::Error> {
-        ui::ask_user_for_version(unique_versions.len())
     }
 
     fn show_enumerated_snapshots(
