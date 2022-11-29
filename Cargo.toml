@@ -16,6 +16,7 @@ strip = true
 anyhow = "1.0.66"
 itertools = "0.10.5"
 path-absolutize = "3.0.14"
+smart-default = "0.6.0"
 
 [[bin]]
 name = "zfs-undelete"

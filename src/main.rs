@@ -8,12 +8,12 @@ mod ui;
 mod undelete;
 mod zfs;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use path_absolutize::Absolutize;
 use undelete::Undelete;
 
 fn main() -> Result<()> {
-    let conf = config::Config::load().unwrap_or_default();
+    let conf = config::Config::load().context("reading config file")?;
     let arguments = args::Arguments::get_args()?;
     if arguments.filename.exists() {
         bail!("Cannot restore already existing file.");
