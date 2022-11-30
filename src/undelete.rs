@@ -101,28 +101,29 @@ impl Undelete {
         &self,
         unique_versions: &[&Snapshot],
     ) -> Result<(), anyhow::Error> {
+        let mut path = PathBuf::default();
         for (i, snap) in unique_versions.iter().enumerate() {
             print!("{i}: ");
             stdout().lock().flush()?;
-            ls(
-                &self.to_recover_relative_to_mountpoint,
-                snap.path(),
-                &self.conf.ls_command,
-            )?;
+
+            path.clear();
+            path.push(snap.path());
+            path.push(&self.to_recover_relative_to_mountpoint);
+
+            ls(&path, &self.conf.ls_command)?;
         }
         Ok(())
     }
 
-    fn ask_restore_only_snapshot(
-        &self,
-        unique_versions: &[&Snapshot],
-    ) -> Result<usize, anyhow::Error> {
-        let snapshot = &unique_versions.get(0).expect("contains one value");
-        ls(
-            &self.to_recover_relative_to_mountpoint,
-            snapshot.path(),
-            &self.conf.ls_command,
-        )?;
+    fn ask_restore_only_snapshot(&self, unique_versions: &[&Snapshot]) -> Result<usize> {
+        let snapshot = &unique_versions
+            .get(0)
+            .ok_or_else(|| anyhow!("getting first snapshot"))?;
+
+        let mut path = PathBuf::from(snapshot.path());
+        path.push(&self.to_recover_relative_to_mountpoint);
+
+        ls(&path, &self.conf.ls_command)?;
 
         let result = if user_wants_to_continue()? {
             0
