@@ -102,8 +102,19 @@ impl Undelete {
         unique_versions: &[&Snapshot],
     ) -> Result<(), anyhow::Error> {
         let mut path = PathBuf::default();
+
+        let snapshot_names: Vec<_> = unique_versions
+            .iter()
+            .map(|snap| snap.path().file_name().unwrap().to_str().unwrap())
+            .collect();
+
+        let len_longest_name = snapshot_names.iter().map(|name| name.len()).max().unwrap();
+
         for (i, snap) in unique_versions.iter().enumerate() {
-            print!("{i}: ");
+            let name = snapshot_names[i];
+            let required_spaces = len_longest_name - name.len();
+            let spaces = " ".repeat(required_spaces);
+            print!("{i}: {} {}", name, spaces);
             stdout().lock().flush()?;
 
             path.clear();
