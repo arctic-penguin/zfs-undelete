@@ -1,85 +1,18 @@
-use std::fmt::Display;
-use std::fs::Metadata;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::SystemTime;
+use std::path::Path;
+use std::path::PathBuf;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail};
+use anyhow::{Context, Result};
 use itertools::Itertools;
 use path_absolutize::Absolutize;
 
-#[derive(PartialEq, PartialOrd, Eq, Ord, Debug)]
-pub(crate) struct Snapshot {
-    path: PathBuf,
-}
-
-impl Display for Snapshot {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.path.display().fmt(f)
-    }
-}
+use super::misc::get_zfs_list_output;
+use super::snapshot::Snapshot;
 
 #[derive(Debug)]
 pub(crate) struct Dataset {
     pub(crate) path: PathBuf,
     snapshots: Vec<Snapshot>,
-}
-
-#[derive(Debug)]
-struct FileInfo {
-    pub(crate) mtime: SystemTime,
-    pub(crate) size: usize,
-}
-
-impl From<Metadata> for FileInfo {
-    fn from(m: Metadata) -> Self {
-        Self {
-            mtime: m.modified().expect("should work on Linux"),
-            size: m.len() as usize,
-        }
-    }
-}
-
-impl Snapshot {
-    /// Check if the file is contained in the snapshot. Return its full path if found.
-    pub(crate) fn contains_file(&self, path: &Path) -> Option<PathBuf> {
-        let actual = self.join(path);
-        if actual.exists() {
-            Some(actual)
-        } else {
-            None
-        }
-    }
-
-    pub(crate) fn path(&self) -> &Path {
-        &self.path
-    }
-
-    pub(crate) fn join(&self, path: &Path) -> PathBuf {
-        self.path.clone().join(path)
-    }
-
-    fn get_file_information(&self, file: &Path) -> Result<FileInfo> {
-        let file_absolute = self.path.join(file);
-        let result = file_absolute
-            .parent()
-            .context("must have a parent")?
-            .read_dir()
-            .context("reading dir")?
-            .find(|f| {
-                f.as_ref()
-                    .expect("we have permission to read the file")
-                    .file_name()
-                    == file_absolute
-                        .file_name()
-                        .expect("path ends in proper name, not '..'")
-            })
-            .ok_or_else(|| anyhow!("could not find file that should be there"))??
-            .metadata()?
-            .into();
-
-        Ok(result)
-    }
 }
 
 impl Dataset {
@@ -204,12 +137,6 @@ impl Dataset {
     }
 }
 
-impl From<PathBuf> for Snapshot {
-    fn from(path: PathBuf) -> Self {
-        Self { path }
-    }
-}
-
 /// check if a path is a zfs mountpoint
 fn is_zfs_dataset(path: &Path, datasets: &[PathBuf]) -> bool {
     datasets.iter().any(|d| d == path)
@@ -230,27 +157,6 @@ fn get_mounted_datasets(output: &str) -> Vec<PathBuf> {
         .map(|split| split.get(1).expect("has a 'mountpoint' column").into())
         .collect();
     result
-}
-
-/// ask zfs for name, mountpoint and mount-status of all datasets.
-fn get_zfs_list_output() -> Result<String> {
-    match Command::new("zfs")
-        .args([
-            "list",
-            "-t", // only datasets
-            "filesystem",
-            "-H", // no header
-            "-o", // only specific columns
-            "name,mountpoint,mounted",
-        ])
-        .output()
-        .context("failed to run `zfs list`")
-    {
-        Ok(output) => {
-            Ok(String::from_utf8(output.stdout).context("could not parse output of `zfs list`")?)
-        }
-        _ => bail!("something went wrong when running `zfs list`"),
-    }
 }
 
 impl TryFrom<PathBuf> for Dataset {
