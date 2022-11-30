@@ -81,7 +81,7 @@ impl Undelete {
         let length = unique_versions.len();
 
         let choice = if length == 1 {
-            self.ask_restore_only_snapshot(unique_versions)?
+            self.ask_restore_only_snapshot()?
         } else {
             let choice = ui::ask_user_for_version(unique_versions.len())?;
             if choice >= length {
@@ -101,7 +101,7 @@ impl Undelete {
         &self,
         unique_versions: &[&Snapshot],
     ) -> Result<(), anyhow::Error> {
-        let mut path = PathBuf::default();
+        let mut pathbuf = PathBuf::default();
 
         let snapshot_names: Vec<_> = unique_versions
             .iter()
@@ -111,31 +111,20 @@ impl Undelete {
         let len_longest_name = snapshot_names.iter().map(|name| name.len()).max().unwrap();
 
         for (i, snap) in unique_versions.iter().enumerate() {
-            let name = snapshot_names[i];
-            let required_spaces = len_longest_name - name.len();
-            let spaces = " ".repeat(required_spaces);
-            print!("{i}: {} {}", name, spaces);
-            stdout().lock().flush()?;
-
-            path.clear();
-            path.push(snap.path());
-            path.push(&self.to_recover_relative_to_mountpoint);
-
-            ls(&path, &self.conf.ls_command)?;
+            self.get_absolute_path(&mut pathbuf, snap);
+            show_snapshot(i, len_longest_name, snapshot_names[i])?;
+            ls(&pathbuf, &self.conf.ls_command)?;
         }
         Ok(())
     }
 
-    fn ask_restore_only_snapshot(&self, unique_versions: &[&Snapshot]) -> Result<usize> {
-        let snapshot = &unique_versions
-            .get(0)
-            .ok_or_else(|| anyhow!("getting first snapshot"))?;
-
-        let mut path = PathBuf::from(snapshot.path());
+    fn get_absolute_path(&self, path: &mut PathBuf, snap: &&Snapshot) {
+        path.clear();
+        path.push(snap.path());
         path.push(&self.to_recover_relative_to_mountpoint);
+    }
 
-        ls(&path, &self.conf.ls_command)?;
-
+    fn ask_restore_only_snapshot(&self) -> Result<usize> {
         let result = if user_wants_to_continue()? {
             0
         } else {
@@ -152,4 +141,12 @@ impl Undelete {
             .join(&self.to_recover_relative_to_mountpoint);
         copy(to_restore, &full_path_in_dataset)
     }
+}
+
+fn show_snapshot(i: usize, len_longest_name: usize, name: &str) -> Result<()> {
+    let required_spaces = len_longest_name - name.len();
+    let spaces = " ".repeat(required_spaces);
+    print!("{i}: {} {}", name, spaces);
+    stdout().lock().flush()?;
+    Ok(())
 }
