@@ -1,6 +1,6 @@
+mod cmd;
 mod dataset;
 mod fileinfo;
-mod misc;
 mod snapshot;
 
 pub(crate) use dataset::Dataset;

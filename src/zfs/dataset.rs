@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use itertools::Itertools;
 use path_absolutize::Absolutize;
 
-use super::misc::get_zfs_list_output;
+use super::cmd::get_mountpoints_of_mounted_datasets;
 use super::snapshot::Snapshot;
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl Dataset {
             .with_context(|| format!("could not resolve filepath {path:?}"))?
             .to_path_buf();
 
-        let mounted_datasets = get_mounted_datasets(&get_zfs_list_output()?);
+        let mounted_datasets = get_mountpoints_of_mounted_datasets()?;
 
         for parent in filepath.ancestors() {
             if is_zfs_dataset(parent, &mounted_datasets) {
@@ -140,23 +140,6 @@ impl Dataset {
 /// check if a path is a zfs mountpoint
 fn is_zfs_dataset(path: &Path, datasets: &[PathBuf]) -> bool {
     datasets.iter().any(|d| d == path)
-}
-
-/// Get a Vec of paths of all currently mounted zfs datasets. The argument must match the structure
-/// laid out in `get_zfs_list_output`.
-fn get_mounted_datasets(output: &str) -> Vec<PathBuf> {
-    let result = output
-        .lines()
-        .map(|l| l.split_terminator('\t').collect::<Vec<_>>())
-        .filter(|split| {
-            split
-                .get(2)
-                .expect("has a 'mounted' column")
-                .contains("yes")
-        })
-        .map(|split| split.get(1).expect("has a 'mountpoint' column").into())
-        .collect();
-    result
 }
 
 impl TryFrom<PathBuf> for Dataset {
