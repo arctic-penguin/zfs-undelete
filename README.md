@@ -1,6 +1,7 @@
 # zfs-undelete
 an easy-to-use cli tool to recover files from zfs snapshots
 
+
 ## Usage
 
 Use `zfs-undelete <file-to-restore>`. Works for file and folders.
@@ -24,7 +25,7 @@ $ ls
 screen.png  screen01.png  screen02.png
 ```
 
-Interactive mode:
+Interactive mode (`-V`):
 ```zsh
 $ pwd
 /home/penguin/rust/zfs-undelete
@@ -41,6 +42,15 @@ README.md
 
 ## Installation
 
+### Arch Linux
+```zsh
+$ paru -S zfs-undelete
+```
+or
+```zsh
+$ paru -S zfs-undelete-git
+```
+
 ### using rust
 with cargo:
 ```zsh
@@ -52,15 +62,6 @@ from source:
 $ git clone https://github.com/arctic-penguin/zfs-undelete
 $ cd zfs-undelete
 $ cargo install --path .
-```
-
-### Arch Linux
-```zsh
-$ paru -S zfs-undelete
-```
-or
-```zsh
-$ paru -S zfs-undelete-git
 ```
 
 
