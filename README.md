@@ -63,6 +63,18 @@ or
 $ paru -S zfs-undelete-git
 ```
 
+
+## Configuration
+You can create a config file under `$XDG_CONFIG_HOME/zfs-undelete.conf`, which by default is `~/.config/zfs-undelete.conf`.
+
+```ini
+LsCommand=lsd  # the command to use instead of `ls`
+LsArgs=-dl  # arguments for `ls`
+```
+
+Empty lines are ignored. Anything after a `#` is ignored.
+
+
 ## How does it work?
 If the provided file path is located under a zfs dataset, `zfs-undelete` searches all snapshots of the dataset in reverse alphabetical order for the file.
 It will restore the first file it finds.
