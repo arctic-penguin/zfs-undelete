@@ -41,10 +41,15 @@ impl TryFrom<PathBuf> for ConfigParser {
         let mut key_value_pairs = HashMap::new();
 
         for line in content.lines() {
-            if line.contains('=') {
-                extract_key_value_pair(line, &mut key_value_pairs)?;
+            let before_comment = line.split('#').next().unwrap().trim();
+            if before_comment.is_empty() {
+                continue;
+            }
+
+            if before_comment.contains('=') {
+                extract_key_value_pair(before_comment, &mut key_value_pairs)?;
             } else {
-                extract_flag(line, &mut flags);
+                extract_flag(before_comment, &mut flags);
             }
         }
 
