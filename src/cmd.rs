@@ -22,17 +22,8 @@ pub(crate) fn copy(source: &Path, target: &Path) -> Result<()> {
 }
 
 pub(crate) fn ls(file: &Path, ls_command: &str, ls_args: &[String]) -> Result<()> {
-    let workdir = file
-        .parent()
-        .context("file must have a parent")?
-        .to_str_anyhow()?
-        .to_owned();
-
-    let file = file
-        .file_name()
-        .context("get filename from path")?
-        .to_str()
-        .context("OS-string to string conversion")?;
+    let workdir = file.parent().context("must have a parent")?;
+    let file = file.file_name().context("getting filename")?;
 
     if Command::new(ls_command)
         .args(ls_args)
