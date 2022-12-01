@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -6,15 +6,10 @@ use anyhow::{bail, Context, Result};
 
 #[derive(Debug)]
 pub(super) struct ConfigParser {
-    flags: HashSet<String>,
     key_value_pairs: HashMap<String, String>,
 }
 
 impl ConfigParser {
-    pub fn has_flag(&self, flag: &str) -> bool {
-        self.flags.contains(flag)
-    }
-
     pub fn get_value_into(&self, key: &str, field: &mut String) {
         if let Some(value) = self.key_value_pairs.get(key) {
             *field = value.to_owned();
@@ -37,7 +32,6 @@ impl TryFrom<PathBuf> for ConfigParser {
     fn try_from(path: PathBuf) -> Result<Self> {
         let content = fs::read_to_string(path).context("reading config file")?;
 
-        let mut flags = HashSet::new();
         let mut key_value_pairs = HashMap::new();
 
         for line in content.lines() {
@@ -48,21 +42,11 @@ impl TryFrom<PathBuf> for ConfigParser {
 
             if before_comment.contains('=') {
                 extract_key_value_pair(before_comment, &mut key_value_pairs)?;
-            } else {
-                extract_flag(before_comment, &mut flags);
             }
         }
 
-        Ok(Self {
-            flags,
-            key_value_pairs,
-        })
+        Ok(Self { key_value_pairs })
     }
-}
-
-/// From a line in the config, extract the flag.
-fn extract_flag(line: &str, flags: &mut HashSet<String>) {
-    flags.insert(line.trim().to_owned());
 }
 
 /// From a line in the config, extract the items like `<key>=<value>`.
