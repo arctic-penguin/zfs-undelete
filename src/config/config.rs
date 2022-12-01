@@ -34,6 +34,7 @@ impl Config {
         Ok(self)
     }
 
+    /// populate all fields with the data from the parser. Return itself, sanity-checked.
     fn fill_from_parser(mut self, parser: ConfigParser) -> Result<Config> {
         parser.get_value_into("LsCommand", &mut self.ls_command);
         parser.get_values_into("LsArgs", &mut self.ls_args);
