@@ -21,12 +21,13 @@ pub(crate) fn copy(source: &Path, target: &Path) -> Result<()> {
     }
 }
 
-pub(crate) fn ls(file: &Path, ls_command: &str) -> Result<()> {
+pub(crate) fn ls(file: &Path, ls_command: &str, ls_args: &[String]) -> Result<()> {
     let workdir = file
         .parent()
         .context("file must have a parent")?
         .to_str_anyhow()?
         .to_owned();
+
     let file = file
         .file_name()
         .context("get filename from path")?
@@ -34,7 +35,8 @@ pub(crate) fn ls(file: &Path, ls_command: &str) -> Result<()> {
         .context("OS-string to string conversion")?;
 
     if Command::new(ls_command)
-        .args(["-dhl", file])
+        .args(ls_args)
+        .arg(file)
         .current_dir(workdir)
         .status()
         .with_context(|| format!("running ls command '{ls_command}'"))?

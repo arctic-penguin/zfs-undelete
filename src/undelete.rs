@@ -113,7 +113,7 @@ impl Undelete {
         for (i, snap) in unique_versions.iter().enumerate() {
             self.get_absolute_path(&mut pathbuf, snap);
             show_snapshot(i, len_longest_name, snapshot_names[i])?;
-            ls(&pathbuf, &self.conf.ls_command)?;
+            ls(&pathbuf, &self.conf.ls_command, &self.conf.ls_args)?;
         }
         Ok(())
     }

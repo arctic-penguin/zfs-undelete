@@ -13,15 +13,23 @@ pub(super) struct ConfigParser {
 }
 
 impl ConfigParser {
-    pub(super) fn has_flag(&self, flag: &str) -> bool {
+    pub fn has_flag(&self, flag: &str) -> bool {
         self.flags.contains(flag)
     }
 
-    pub(super) fn get_value_or(&self, key: &str, default: &str) -> String {
-        self.key_value_pairs
-            .get(key)
-            .cloned()
-            .unwrap_or_else(|| default.to_owned())
+    pub fn get_value_into(&self, key: &str, field: &mut String) {
+        if let Some(value) = self.key_value_pairs.get(key) {
+            *field = value.to_owned();
+        }
+    }
+
+    pub fn get_values_into(&self, key: &str, field: &mut Vec<String>) {
+        if let Some(value) = self.key_value_pairs.get(key) {
+            field.clear();
+            for item in value.split_whitespace() {
+                field.push(item.trim().to_owned());
+            }
+        }
     }
 }
 

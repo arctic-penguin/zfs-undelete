@@ -1,24 +1,28 @@
 use anyhow::{bail, Context, Result};
+use smart_default::SmartDefault;
 
 use super::configparser::ConfigParser;
-use crate::config::misc::get_config_file;
+use super::misc::get_config_file;
 
-#[derive(Debug, Default)]
+#[derive(Debug, SmartDefault)]
 pub(crate) struct Config {
+    #[default("ls".to_string())]
     pub(crate) ls_command: String,
-    // pub(crate) ls_args: Vec<String>,
+
+    #[default(vec!["-hl".to_string()])]
+    pub(crate) ls_args: Vec<String>,
 }
 
 impl Config {
     /// Load the config file from disk.
     pub(crate) fn load() -> Result<Self> {
         let config_file = get_config_file().context("getting config file")?;
-        let parser: ConfigParser = config_file.try_into()?;
-        let mut result = Self::default();
+        let result = Self::default();
 
-        result.ls_command = parser.get_value_or("LsCommand", "ls");
-
-        result.sanity_checked()
+        match TryInto::<ConfigParser>::try_into(config_file) {
+            Ok(parser) => result.fill_from_parser(parser),
+            _ => Ok(result),
+        }
     }
 
     /// Takes ownership of the instance and returns itself, but sanity-checked and wrapped in
@@ -28,5 +32,12 @@ impl Config {
             bail!("missing value for LsCommand");
         }
         Ok(self)
+    }
+
+    fn fill_from_parser(mut self, parser: ConfigParser) -> Result<Config> {
+        parser.get_value_into("LsCommand", &mut self.ls_command);
+        parser.get_values_into("LsArgs", &mut self.ls_args);
+
+        self.sanity_checked()
     }
 }
