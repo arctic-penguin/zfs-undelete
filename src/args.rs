@@ -2,6 +2,7 @@ use std::env::args;
 use std::path::PathBuf;
 
 use anyhow::{bail, Context, Result};
+use path_absolutize::Absolutize;
 
 use crate::mode::Mode;
 
@@ -18,7 +19,8 @@ impl Arguments {
             bail!("Missing arguments");
         }
         let mode = Mode::get_from_args(&mut raw_args);
-        let filename = raw_args.pop().context("filename missing")?.into();
+        let filename_relative: PathBuf = raw_args.pop().context("filename missing")?.into();
+        let filename = filename_relative.absolutize()?.into();
         Ok(Self { mode, filename })
     }
 }
